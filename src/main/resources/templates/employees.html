@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Danh sách Nhân viên</title>
+    <style>
+        table { border-collapse: collapse; width: 80%; margin: 20px auto; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        h2 { text-align: center; }
+    </style>
+</head>
+<body>
+<h2>Danh sách Nhân viên</h2>
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Họ tên</th>
+        <th>Tuổi</th>
+        <th>Avatar</th>
+        <th>Trạng thái</th>
+        <th>Phòng ban</th>
+    </tr>
+    </thead>
+    <tbody>
+    <!-- Duyệt qua danh sách employees trong model -->
+    <tr th:each="emp : ${employees}">
+        <td th:text="${emp.id}"></td>
+        <td th:text="${emp.name}"></td>
+        <td th:text="${emp.age}"></td>
+        <td th:text="${emp.avatar}"></td>
+        <td th:text="${emp.status}"></td>
+        <!-- Nhờ OSIV mặc định bật, truy cập emp.department.name không gây LazyInitializationException -->
+        <!-- Sử dụng ?. để phòng trường hợp department null (dù dữ liệu seed luôn có) -->
+        <td th:text="${emp.department?.name}"></td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>
