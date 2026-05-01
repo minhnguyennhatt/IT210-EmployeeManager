@@ -8,31 +8,38 @@
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
         h2 { text-align: center; }
+        .thumbnail { width: 50px; height: 50px; object-fit: cover; border-radius: 50%; }
     </style>
 </head>
 <body>
 <h2>Danh sách Nhân viên</h2>
+<div style="text-align:center; margin-bottom:20px;">
+    <a th:href="@{/employees/add}">➕ Thêm nhân viên mới</a>
+</div>
 <table>
     <thead>
     <tr>
         <th>ID</th>
+        <th>Ảnh</th>
         <th>Họ tên</th>
         <th>Tuổi</th>
-        <th>Avatar</th>
+        <th>Avatar file</th>
         <th>Trạng thái</th>
         <th>Phòng ban</th>
     </tr>
     </thead>
     <tbody>
-    <!-- Duyệt qua danh sách employees trong model -->
     <tr th:each="emp : ${employees}">
         <td th:text="${emp.id}"></td>
+        <td>
+            <!-- Hiển thị ảnh đại diện, nếu không có avatar thì dùng ảnh placeholder SVG -->
+            <img th:src="${emp.avatar != null ? '/uploads/' + emp.avatar : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%22 y=%2255%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%23999%22%3E%F0%9F%91%A4%3C/text%3E%3C/svg%3E'}"
+                 class="thumbnail" alt="avatar"/>
+        </td>
         <td th:text="${emp.name}"></td>
         <td th:text="${emp.age}"></td>
         <td th:text="${emp.avatar}"></td>
         <td th:text="${emp.status}"></td>
-        <!-- Nhờ OSIV mặc định bật, truy cập emp.department.name không gây LazyInitializationException -->
-        <!-- Sử dụng ?. để phòng trường hợp department null (dù dữ liệu seed luôn có) -->
         <td th:text="${emp.department?.name}"></td>
     </tr>
     </tbody>
