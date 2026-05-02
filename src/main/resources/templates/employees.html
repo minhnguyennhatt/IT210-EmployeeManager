@@ -4,25 +4,120 @@
     <meta charset="UTF-8">
     <title>Danh sách Nhân viên</title>
     <style>
-        table { border-collapse: collapse; width: 80%; margin: 20px auto; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        h2 { text-align: center; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #f5f7fa; margin: 0; padding: 20px; }
+        h2 { text-align: center; color: #333; }
+
+        .toolbar {
+            width: 90%; max-width: 1000px; margin: 0 auto 15px auto;
+            display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+            justify-content: space-between;
+        }
+        .search-box { display: flex; align-items: center; gap: 5px; }
+        .search-box input[type="text"] {
+            padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; width: 220px;
+        }
+        .search-box button, .search-box a {
+            padding: 8px 14px; border: none; border-radius: 4px; cursor: pointer;
+            font-size: 14px; text-decoration: none; display: inline-block;
+        }
+        .btn-search { background: #007bff; color: #fff; }
+        .btn-search:hover { background: #0056b3; }
+        .btn-reset { background: #6c757d; color: #fff; }
+        .btn-reset:hover { background: #545b62; }
+        .btn-add { background: #28a745; color: #fff; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 14px; }
+        .btn-add:hover { background: #1e7e34; }
+
+        .sort-info {
+            width: 90%; max-width: 1000px; margin: 0 auto 10px auto;
+            font-size: 13px; color: #666;
+        }
+
+        table {
+            border-collapse: collapse; width: 90%; max-width: 1000px; margin: 0 auto;
+            background: #fff; border-radius: 6px; overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        th, td { border: 1px solid #e0e0e0; padding: 10px 12px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: 600; color: #444; }
+        th a { color: #333; text-decoration: none; display: flex; align-items: center; gap: 4px; }
+        th a:hover { color: #007bff; }
+        .sort-icon { font-size: 12px; }
         .thumbnail { width: 50px; height: 50px; object-fit: cover; border-radius: 50%; }
+
+        .no-result {
+            text-align: center; padding: 30px; color: #888; font-size: 16px;
+            width: 90%; max-width: 1000px; margin: 20px auto;
+            background: #fff; border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .pagination {
+            width: 90%; max-width: 1000px; margin: 20px auto; display: flex;
+            justify-content: center; align-items: center; gap: 4px; flex-wrap: wrap;
+        }
+        .pagination a, .pagination span {
+            padding: 8px 14px; border: 1px solid #ddd; border-radius: 4px;
+            text-decoration: none; color: #333; font-size: 14px;
+            transition: background 0.2s;
+        }
+        .pagination a:hover { background: #e9ecef; }
+        .pagination .active {
+            background: #007bff; color: #fff; border-color: #007bff; font-weight: bold;
+        }
+        .pagination .disabled {
+            color: #aaa; pointer-events: none; background: #f9f9f9;
+        }
+
+        .page-info {
+            text-align: center; font-size: 13px; color: #666; margin-top: 5px;
+        }
     </style>
 </head>
 <body>
-<h2>Danh sách Nhân viên</h2>
-<div style="text-align:center; margin-bottom:20px;">
-    <a th:href="@{/employees/add}">➕ Thêm nhân viên mới</a>
+<h2>📋 Danh sách Nhân viên</h2>
+
+<!-- Thanh công cụ: Tìm kiếm + Thêm mới -->
+<div class="toolbar">
+    <div class="search-box">
+        <form th:action="@{/employees}" method="get" style="display:flex; gap:5px; align-items:center;">
+            <input type="text" name="keyword" th:value="${keyword}" placeholder="Tìm theo tên nhân viên..."/>
+            <input type="hidden" name="sortField" th:value="${sortField}"/>
+            <input type="hidden" name="sortDir" th:value="${sortDir}"/>
+            <button type="submit" class="btn-search">🔍 Tìm</button>
+        </form>
+        <a th:if="${keyword != null and !keyword.isEmpty()}"
+           th:href="@{/employees(sortField=${sortField}, sortDir=${sortDir})}"
+           class="btn-reset">✕ Xóa</a>
+    </div>
+    <a th:href="@{/employees/add}" class="btn-add">➕ Thêm nhân viên mới</a>
 </div>
+
+<!-- Thông tin tổng -->
+<div class="sort-info">
+    <span>Tổng: <strong th:text="${totalItems}">0</strong> nhân viên</span>
+    <span style="margin-left:15px;">Sắp xếp theo:
+        <strong th:text="${sortField == 'name' ? 'Tên' : 'Tuổi'}"></strong>
+        (<span th:text="${sortDir == 'asc' ? 'Tăng dần ↑' : 'Giảm dần ↓'}"></span>)
+    </span>
+</div>
+
+<!-- Bảng dữ liệu -->
 <table>
     <thead>
     <tr>
         <th>ID</th>
         <th>Ảnh</th>
-        <th>Họ tên</th>
-        <th>Tuổi</th>
+        <th>
+            <a th:href="@{/employees(page=${currentPage}, size=5, sortField='name', sortDir=${reverseSortDir}, keyword=${keyword})}">
+                Họ tên <span class="sort-icon" th:if="${sortField == 'name'}" th:text="${sortDir == 'asc' ? '↑' : '↓'}"></span>
+            </a>
+        </th>
+        <th>
+            <a th:href="@{/employees(page=${currentPage}, size=5, sortField='age', sortDir=${reverseSortDir}, keyword=${keyword})}">
+                Tuổi <span class="sort-icon" th:if="${sortField == 'age'}" th:text="${sortDir == 'asc' ? '↑' : '↓'}"></span>
+            </a>
+        </th>
         <th>Avatar file</th>
         <th>Trạng thái</th>
         <th>Phòng ban</th>
@@ -32,7 +127,6 @@
     <tr th:each="emp : ${employees}">
         <td th:text="${emp.id}"></td>
         <td>
-            <!-- Hiển thị ảnh đại diện, nếu không có avatar thì dùng ảnh placeholder SVG -->
             <img th:src="${emp.avatar != null ? '/uploads/' + emp.avatar : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%22 y=%2255%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%23999%22%3E%F0%9F%91%A4%3C/text%3E%3C/svg%3E'}"
                  class="thumbnail" alt="avatar"/>
         </td>
@@ -44,5 +138,42 @@
     </tr>
     </tbody>
 </table>
+
+<!-- Thông báo không tìm thấy kết quả -->
+<div class="no-result" th:if="${#lists.isEmpty(employees)}">
+    😟 Không tìm thấy nhân viên nào
+    <span th:if="${keyword != null and !keyword.isEmpty()}"> với từ khóa "<strong th:text="${keyword}"></strong>"</span>.
+</div>
+
+<!-- Thanh phân trang -->
+<div class="pagination" th:if="${totalPages > 0}">
+    <!-- Nút Trang trước -->
+    <a th:if="${currentPage > 0}"
+       th:href="@{/employees(page=${currentPage - 1}, size=5, sortField=${sortField}, sortDir=${sortDir}, keyword=${keyword})}">
+        ◀ Trang trước
+    </a>
+    <span th:if="${currentPage == 0}" class="disabled">◀ Trang trước</span>
+
+    <!-- Số trang -->
+    <th:block th:each="i : ${#numbers.sequence(0, totalPages - 1)}">
+        <a th:if="${i != currentPage}"
+           th:href="@{/employees(page=${i}, size=5, sortField=${sortField}, sortDir=${sortDir}, keyword=${keyword})}"
+           th:text="${i + 1}">1</a>
+        <span th:if="${i == currentPage}" class="active" th:text="${i + 1}">1</span>
+    </th:block>
+
+    <!-- Nút Trang sau -->
+    <a th:if="${currentPage < totalPages - 1}"
+       th:href="@{/employees(page=${currentPage + 1}, size=5, sortField=${sortField}, sortDir=${sortDir}, keyword=${keyword})}">
+        Trang sau ▶
+    </a>
+    <span th:if="${currentPage >= totalPages - 1}" class="disabled">Trang sau ▶</span>
+</div>
+
+<!-- Thông tin trang -->
+<div class="page-info" th:if="${totalPages > 0}">
+    Trang <strong th:text="${currentPage + 1}"></strong> / <strong th:text="${totalPages}"></strong>
+</div>
+
 </body>
 </html>

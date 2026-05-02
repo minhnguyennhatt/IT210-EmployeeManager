@@ -4,6 +4,10 @@ import com.employeemanager.entity.Employee;
 import com.employeemanager.repository.DepartmentRepository;
 import com.employeemanager.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -38,8 +42,50 @@ public class EmployeeController {
     }
 
     @GetMapping("/employees")
-    public String listEmployees(Model model) {
-        model.addAttribute("employees", employeeRepository.findAll());
+    public String listEmployees(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "name") String sortField,
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) String keyword,
+            Model model) {
+
+        // Xử lý trang âm hoặc quá lớn
+        if (page < 0) page = 0;
+
+        // Tạo Sort và Pageable
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortField);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // Tìm kiếm + phân trang
+        Page<Employee> employeePage;
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            employeePage = employeeRepository.findByNameContainingIgnoreCase(keyword.trim(), pageable);
+        } else {
+            employeePage = employeeRepository.findAll(pageable);
+        }
+
+        // Xử lý nếu page vượt quá tổng số trang
+        if (page >= employeePage.getTotalPages() && employeePage.getTotalPages() > 0) {
+            page = employeePage.getTotalPages() - 1;
+            pageable = PageRequest.of(page, size, sort);
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                employeePage = employeeRepository.findByNameContainingIgnoreCase(keyword.trim(), pageable);
+            } else {
+                employeePage = employeeRepository.findAll(pageable);
+            }
+        }
+
+        // Truyền dữ liệu ra View
+        model.addAttribute("employees", employeePage.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", employeePage.getTotalPages());
+        model.addAttribute("totalItems", employeePage.getTotalElements());
+        model.addAttribute("sortField", sortField);
+        model.addAttribute("sortDir", sortDir);
+        model.addAttribute("keyword", keyword);
+        model.addAttribute("reverseSortDir", sortDir.equals("asc") ? "desc" : "asc");
+
         return "employees";
     }
 
