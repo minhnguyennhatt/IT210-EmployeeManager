@@ -18,8 +18,7 @@ public class Department {
 
     // Quan hệ 1-n: một phòng ban có nhiều nhân viên
     // mappedBy = "department" -> thuộc tính department trong Employee làm chủ quan hệ
-    // cascade = ALL -> mọi thao tác trên Department sẽ lan sang Employee (bao gồm xoá)
-    @OneToMany(mappedBy = "department", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
     private List<Employee> employees = new ArrayList<>();
 
     // Constructors, getters, setters

@@ -48,32 +48,37 @@ public class EmployeeController {
             @RequestParam(defaultValue = "name") String sortField,
             @RequestParam(defaultValue = "asc") String sortDir,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long departmentId,
+            @RequestParam(required = false) Integer minAge,
+            @RequestParam(required = false) Integer maxAge,
             Model model) {
 
         // Xử lý trang âm hoặc quá lớn
         if (page < 0) page = 0;
+
+        String safeKeyword = (keyword == null || keyword.trim().isEmpty()) ? null : keyword.trim();
+        Integer safeMinAge = minAge;
+        Integer safeMaxAge = maxAge;
+        if (safeMinAge != null && safeMaxAge != null && safeMinAge > safeMaxAge) {
+            int temp = safeMinAge;
+            safeMinAge = safeMaxAge;
+            safeMaxAge = temp;
+        }
 
         // Tạo Sort và Pageable
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortField);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         // Tìm kiếm + phân trang
-        Page<Employee> employeePage;
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            employeePage = employeeRepository.findByNameContainingIgnoreCase(keyword.trim(), pageable);
-        } else {
-            employeePage = employeeRepository.findAll(pageable);
-        }
+        Page<Employee> employeePage = employeeRepository.searchByFilters(
+                safeKeyword, departmentId, safeMinAge, safeMaxAge, pageable);
 
         // Xử lý nếu page vượt quá tổng số trang
         if (page >= employeePage.getTotalPages() && employeePage.getTotalPages() > 0) {
             page = employeePage.getTotalPages() - 1;
             pageable = PageRequest.of(page, size, sort);
-            if (keyword != null && !keyword.trim().isEmpty()) {
-                employeePage = employeeRepository.findByNameContainingIgnoreCase(keyword.trim(), pageable);
-            } else {
-                employeePage = employeeRepository.findAll(pageable);
-            }
+            employeePage = employeeRepository.searchByFilters(
+                    safeKeyword, departmentId, safeMinAge, safeMaxAge, pageable);
         }
 
         // Truyền dữ liệu ra View
@@ -83,7 +88,11 @@ public class EmployeeController {
         model.addAttribute("totalItems", employeePage.getTotalElements());
         model.addAttribute("sortField", sortField);
         model.addAttribute("sortDir", sortDir);
-        model.addAttribute("keyword", keyword);
+        model.addAttribute("keyword", safeKeyword);
+        model.addAttribute("departmentId", departmentId);
+        model.addAttribute("minAge", safeMinAge);
+        model.addAttribute("maxAge", safeMaxAge);
+        model.addAttribute("departments", departmentRepository.findAll());
         model.addAttribute("reverseSortDir", sortDir.equals("asc") ? "desc" : "asc");
 
         return "employees";

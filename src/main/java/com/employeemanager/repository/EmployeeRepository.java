@@ -15,4 +15,18 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     // @Query JPQL: tìm kiếm theo tên + phân trang (cách thay thế)
     @Query("SELECT e FROM Employee e WHERE LOWER(e.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<Employee> searchByName(@Param("keyword") String keyword, Pageable pageable);
+
+    @Query("SELECT e FROM Employee e " +
+            "WHERE (:keyword IS NULL OR :keyword = '' OR LOWER(e.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (:departmentId IS NULL OR e.department.id = :departmentId) " +
+            "AND (:minAge IS NULL OR e.age >= :minAge) " +
+            "AND (:maxAge IS NULL OR e.age <= :maxAge)")
+    Page<Employee> searchByFilters(@Param("keyword") String keyword,
+                                   @Param("departmentId") Long departmentId,
+                                   @Param("minAge") Integer minAge,
+                                   @Param("maxAge") Integer maxAge,
+                                   Pageable pageable);
+
+    @Query("SELECT e FROM Employee e WHERE e.department.id = :departmentId")
+    java.util.List<Employee> findByDepartmentId(@Param("departmentId") Long departmentId);
 }
